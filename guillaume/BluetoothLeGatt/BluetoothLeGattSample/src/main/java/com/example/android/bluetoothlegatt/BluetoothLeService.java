@@ -33,7 +33,10 @@ import android.os.IBinder;
 import android.util.Log;
 
 import java.util.List;
+import java.util.PriorityQueue;
+import java.util.Queue;
 import java.util.UUID;
+import java.util.concurrent.SynchronousQueue;
 
 /**
  * Service for managing connection and data communication with a GATT server hosted on a
@@ -65,6 +68,21 @@ public class BluetoothLeService extends Service {
 
     public final static UUID UUID_HEART_RATE_MEASUREMENT =
             UUID.fromString(SampleGattAttributes.HEART_RATE_MEASUREMENT);
+
+    public class Job { // So we can queue the requests
+        public BluetoothGattCharacteristic characteristic;
+        public BluetoothGattDescriptor descriptor;
+        public int type; // 0=readChar, 1=writeChar, 2=writeDesc
+
+        public Job(BluetoothGattCharacteristic characteristic, BluetoothGattDescriptor descriptor, int type) {
+            this.characteristic = characteristic;
+            this.descriptor = descriptor;
+            this.type = type;
+        }
+    }
+
+    public PriorityQueue<Job> jobQueue = new PriorityQueue<Job>();
+    public boolean jobs_lock = false;
 
     // Implements callback methods for GATT events that the app cares about.  For example,
     // connection change and services discovered.
@@ -105,12 +123,24 @@ public class BluetoothLeService extends Service {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
             }
+            if (!jobQueue.isEmpty())
+               executeJob(jobQueue.poll());
+            jobs_lock = false;
+        }
+        @Override
+        public void onCharacteristicWrite(BluetoothGatt gatt,
+                                          BluetoothGattCharacteristic characteristic, int status) {
+            if (!jobQueue.isEmpty())
+                executeJob(jobQueue.poll());
+            jobs_lock = false;
         }
 
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt,
                                             BluetoothGattCharacteristic characteristic) {
             broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
+            /*if (!jobQueue.isEmpty())
+                executeJob(jobQueue.poll());*/
         }
     };
 
@@ -267,6 +297,14 @@ public class BluetoothLeService extends Service {
         mBluetoothGatt = null;
     }
 
+    public void executeJob(Job job) {
+        switch(job.type) {
+            case 1: mBluetoothGatt.readCharacteristic(job.characteristic); break;
+            case 2: mBluetoothGatt.writeCharacteristic(job.characteristic); break;
+            case 3: mBluetoothGatt.writeDescriptor(job.descriptor); break;
+        }
+    }
+
     /**
      * Request a read on a given {@code BluetoothGattCharacteristic}. The read result is reported
      * asynchronously through the {@code BluetoothGattCallback#onCharacteristicRead(android.bluetooth.BluetoothGatt, android.bluetooth.BluetoothGattCharacteristic, int)}
@@ -279,7 +317,13 @@ public class BluetoothLeService extends Service {
             Log.w(TAG, "BluetoothAdapter not initialized");
             return;
         }
-        mBluetoothGatt.readCharacteristic(characteristic);
+
+        Log.d("ntf", "readCharacteristic! " + jobQueue.size());
+        if (jobQueue.isEmpty() && !jobs_lock) {
+            mBluetoothGatt.readCharacteristic(characteristic);
+            jobs_lock = true;
+        } else
+            jobQueue.offer(new Job(characteristic, null, 1));
     }
 
     public void writeCharacteristic(BluetoothGattCharacteristic characteristic) {
@@ -287,7 +331,13 @@ public class BluetoothLeService extends Service {
             Log.w(TAG, "BluetoothAdapter not initialized");
             return;
         }
-        mBluetoothGatt.writeCharacteristic(characteristic);
+        Log.d("ntf", "writeCharacteristic! " + jobQueue.size());
+        if (jobQueue.isEmpty() && !jobs_lock) {
+            mBluetoothGatt.writeCharacteristic(characteristic);
+            jobs_lock = true;
+        }
+        else
+            jobQueue.offer(new Job(characteristic, null, 2));
     }
 
     /**
@@ -304,13 +354,27 @@ public class BluetoothLeService extends Service {
         }
         mBluetoothGatt.setCharacteristicNotification(characteristic, enabled);
 
+        BluetoothGattDescriptor descriptor = characteristic.getDescriptor(
+                UUID.fromString(SampleGattAttributes.CLIENT_CHARACTERISTIC_CONFIG));
+        if (descriptor != null) {
+            Log.d("ntf", "setCharacteristicNotification!" + jobQueue.size());
+            descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+
+            if (jobQueue.isEmpty() && !jobs_lock) {
+                mBluetoothGatt.writeDescriptor(descriptor);
+                jobs_lock = true;
+            }
+            else
+                jobQueue.offer(new Job(null, descriptor, 3));
+        }
+
         // This is specific to Heart Rate Measurement.
-        if (UUID_HEART_RATE_MEASUREMENT.equals(characteristic.getUuid())) {
+        /*if (UUID_HEART_RATE_MEASUREMENT.equals(characteristic.getUuid())) {
             BluetoothGattDescriptor descriptor = characteristic.getDescriptor(
                     UUID.fromString(SampleGattAttributes.CLIENT_CHARACTERISTIC_CONFIG));
             descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
             mBluetoothGatt.writeDescriptor(descriptor);
-        }
+        }*/
     }
 
     /**

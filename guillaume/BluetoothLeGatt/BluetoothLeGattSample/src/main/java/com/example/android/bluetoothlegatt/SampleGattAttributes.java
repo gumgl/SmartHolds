@@ -17,6 +17,7 @@
 package com.example.android.bluetoothlegatt;
 
 import java.util.HashMap;
+import java.util.UUID;
 
 /**
  * This class includes a small subset of standard GATT attributes for demonstration purposes.
@@ -25,6 +26,16 @@ public class SampleGattAttributes {
     private static HashMap<String, String> attributes = new HashMap();
     public static String HEART_RATE_MEASUREMENT = "00002a37-0000-1000-8000-00805f9b34fb";
     public static String CLIENT_CHARACTERISTIC_CONFIG = "00002902-0000-1000-8000-00805f9b34fb";
+    public static UUID SERVICE_ACC = UUID.fromString("0000aa10-0000-1000-8000-00805f9b34fb");
+    public static UUID ACC_ENABLE_UUID = UUID.fromString("0000aa12-0000-1000-8000-00805f9b34fb");
+    public static UUID ACC_XYZ_DATA8_UUID = UUID.fromString("0000aa13-0000-1000-8000-00805f9b34fb");
+    public static UUID ACC_XYZ_DATA14_UUID = UUID.fromString("0000aa14-0000-1000-8000-00805f9b34fb");
+    public static UUID ACC_TAP_DATA_UUID = UUID.fromString("0000aa15-0000-1000-8000-00805f9b34fb");
+    public static UUID ACC_TAP_THSZ_UUID = UUID.fromString("0000aa16-0000-1000-8000-00805f9b34fb");
+    public static UUID ACC_TAP_THSX_UUID = UUID.fromString("0000aa17-0000-1000-8000-00805f9b34fb");
+    public static UUID ACC_TAP_THSY_UUID = UUID.fromString("0000aa18-0000-1000-8000-00805f9b34fb");
+    public static UUID SERVICE_TEST = UUID.fromString("0000aa60-0000-1000-8000-00805f9b34fb");
+    public static UUID TST_COLOR_UUID = UUID.fromString("0000aa62-0000-1000-8000-00805f9b34fb");
 
     static {
         // Sample Services.

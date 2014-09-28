@@ -41,7 +41,7 @@
         android:theme="@android:style/Theme.Holo.Light" >
         <activity
             android:name=".ListRoutesActivity"
-            android:label="List the Routes" >
+            android:label="List of Routes" >
         </activity>
         <activity
             android:name=".DeviceScanActivity"

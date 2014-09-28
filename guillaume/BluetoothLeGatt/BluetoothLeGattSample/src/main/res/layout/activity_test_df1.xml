@@ -84,28 +84,72 @@
             android:id="@+id/connected"
             android:text="@string/hello_world"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            android:visibility="gone"/>
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
 
-        <Button
+            <Button
             android:layout_height="wrap_content"
             android:layout_width="wrap_content"
-            android:text="Set color OFF"
+            android:text="OFF"
             android:onClick="colorOff" />
-        <Button
-            android:layout_height="wrap_content"
+            <Button
+                android:layout_height="wrap_content"
+                android:layout_width="wrap_content"
+                android:text="RED"
+                android:onClick="colorRed" />
+            <Button
+                android:layout_height="wrap_content"
+                android:layout_width="wrap_content"
+                android:text="GREEN"
+                android:onClick="colorGreen" />
+            <Button
+                android:layout_height="wrap_content"
+                android:layout_width="wrap_content"
+                android:text="BLUE"
+                android:onClick="colorBlue" /></LinearLayout>
+        <LinearLayout
             android:layout_width="wrap_content"
-            android:text="Set color RED"
-            android:onClick="colorRed" />
-        <Button
             android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="TAP notifications:"/>
+            <Button
+                android:layout_height="wrap_content"
+                android:layout_width="wrap_content"
+                android:text="START"
+                android:onClick="startNotify" />
+            <Button
+                android:layout_height="wrap_content"
+                android:layout_width="wrap_content"
+                android:text="STOP"
+                android:onClick="stopNotify" />
+        </LinearLayout>
+        <LinearLayout
             android:layout_width="wrap_content"
-            android:text="Set color GREEN"
-            android:onClick="colorGreen" />
-        <Button
             android:layout_height="wrap_content"
-            android:layout_width="wrap_content"
-            android:text="Set color BLUE"
-            android:onClick="colorBlue" />
+            android:orientation="horizontal">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="TAP notifications:"/>
+            <Button
+                android:layout_height="wrap_content"
+                android:layout_width="wrap_content"
+                android:text="0xAA12 = 0x01"
+                android:onClick="write01" />
+            <Button
+                android:layout_height="wrap_content"
+                android:layout_width="wrap_content"
+                android:text="0xAA12 = 0x00"
+                android:onClick="write00" />
+        </LinearLayout>
+
     </LinearLayout>
     <ExpandableListView android:id="@+id/gatt_services_list"
         android:layout_width="match_parent"

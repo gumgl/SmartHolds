@@ -11,6 +11,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
@@ -20,6 +23,7 @@ import android.view.View;
 import android.widget.ExpandableListView;
 import android.widget.SimpleExpandableListAdapter;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -46,6 +50,9 @@ public class TestDF1Activity extends Activity {
 
     private final String LIST_NAME = "NAME";
     private final String LIST_UUID = "UUID";
+
+    Uri notification;
+    Ringtone r;
 
     // Code to manage Service lifecycle.
     private final ServiceConnection mServiceConnection = new ServiceConnection() {
@@ -81,6 +88,7 @@ public class TestDF1Activity extends Activity {
                 mConnected = true;
                 updateConnectionState(R.string.connected);
                 invalidateOptionsMenu();
+                Log.d("test", "on se connecte !");
             } else if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action)) {
                 mConnected = false;
                 updateConnectionState(R.string.disconnected);
@@ -89,8 +97,16 @@ public class TestDF1Activity extends Activity {
             } else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
                 // Show all the supported services and characteristics on the user interface.
                 displayGattServices(mBluetoothLeService.getSupportedGattServices());
+                startNotify(null);
             } else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
+                Toast.makeText(getApplicationContext(), intent.getStringExtra(BluetoothLeService.EXTRA_DATA), Toast.LENGTH_SHORT).show();
                 displayData(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
+                try {
+                    r.stop();
+                    r.play();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         }
     };
@@ -154,6 +170,13 @@ public class TestDF1Activity extends Activity {
         getActionBar().setDisplayHomeAsUpEnabled(true);
         Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
         bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
+
+        try {
+            notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+            r = RingtoneManager.getRingtone(getApplicationContext(), notification);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -295,8 +318,8 @@ public class TestDF1Activity extends Activity {
     }*/
     public void colorOff(View view) {
         for (BluetoothGattService gattService : mBluetoothLeService.getSupportedGattServices()) {
-            if (gattService.getUuid().equals(UUID.fromString("0000aa60-0000-1000-8000-00805f9b34fb"))) {
-                BluetoothGattCharacteristic characteristic = gattService.getCharacteristic(UUID.fromString("0000aa62-0000-1000-8000-00805f9b34fb"));
+            if (gattService.getUuid().equals(SampleGattAttributes.SERVICE_TEST)) {
+                BluetoothGattCharacteristic characteristic = gattService.getCharacteristic(SampleGattAttributes.TST_COLOR_UUID);
                 characteristic.setValue("0");
                 mBluetoothLeService.writeCharacteristic(characteristic);
             }
@@ -304,8 +327,8 @@ public class TestDF1Activity extends Activity {
     }
     public void colorRed(View view) {
         for (BluetoothGattService gattService : mBluetoothLeService.getSupportedGattServices()) {
-            if (gattService.getUuid().equals(UUID.fromString("0000aa60-0000-1000-8000-00805f9b34fb"))) {
-                BluetoothGattCharacteristic characteristic = gattService.getCharacteristic(UUID.fromString("0000aa62-0000-1000-8000-00805f9b34fb"));
+            if (gattService.getUuid().equals(SampleGattAttributes.SERVICE_TEST)) {
+                BluetoothGattCharacteristic characteristic = gattService.getCharacteristic(SampleGattAttributes.TST_COLOR_UUID);
                 characteristic.setValue("1");
                 mBluetoothLeService.writeCharacteristic(characteristic);
             }
@@ -313,8 +336,8 @@ public class TestDF1Activity extends Activity {
     }
     public void colorGreen(View view) {
         for (BluetoothGattService gattService : mBluetoothLeService.getSupportedGattServices()) {
-            if (gattService.getUuid().equals(UUID.fromString("0000aa60-0000-1000-8000-00805f9b34fb"))) {
-                BluetoothGattCharacteristic characteristic = gattService.getCharacteristic(UUID.fromString("0000aa62-0000-1000-8000-00805f9b34fb"));
+            if (gattService.getUuid().equals(SampleGattAttributes.SERVICE_TEST)) {
+                BluetoothGattCharacteristic characteristic = gattService.getCharacteristic(SampleGattAttributes.TST_COLOR_UUID);
                 characteristic.setValue("2");
                 mBluetoothLeService.writeCharacteristic(characteristic);
             }
@@ -322,10 +345,72 @@ public class TestDF1Activity extends Activity {
     }
     public void colorBlue(View view) {
         for (BluetoothGattService gattService : mBluetoothLeService.getSupportedGattServices()) {
-            if (gattService.getUuid().equals(UUID.fromString("0000aa60-0000-1000-8000-00805f9b34fb"))) {
-                BluetoothGattCharacteristic characteristic = gattService.getCharacteristic(UUID.fromString("0000aa62-0000-1000-8000-00805f9b34fb"));
+            if (gattService.getUuid().equals(SampleGattAttributes.SERVICE_TEST)) {
+                BluetoothGattCharacteristic characteristic = gattService.getCharacteristic(SampleGattAttributes.TST_COLOR_UUID);
                 characteristic.setValue("4");
                 mBluetoothLeService.writeCharacteristic(characteristic);
+            }
+        }
+    }
+    public void startNotify(View view) {
+        for (BluetoothGattService gattService : mBluetoothLeService.getSupportedGattServices()) {
+            // Write to device, enabling tap notifications
+            if (gattService.getUuid().equals(SampleGattAttributes.SERVICE_ACC)) {
+                Log.d("test", "Inside Service");
+                BluetoothGattCharacteristic characteristicENABLE = gattService.getCharacteristic(SampleGattAttributes.ACC_ENABLE_UUID);
+                if (characteristicENABLE != null) {
+                    Log.d("test", "Before setu^char");
+                    byte[] value= {(byte) 0x04};
+                    characteristicENABLE.setValue(value);
+                    mBluetoothLeService.writeCharacteristic(characteristicENABLE);
+                }
+                BluetoothGattCharacteristic characteristicTAP = gattService.getCharacteristic(SampleGattAttributes.ACC_TAP_DATA_UUID);
+                if (characteristicTAP != null) {
+                    Log.d("ntf", "at least we setup the notifications...");
+                    mBluetoothLeService.setCharacteristicNotification(characteristicTAP, true);
+                }
+            }
+        }
+    }
+    public void stopNotify(View view) {
+        // Write to device, disabling tap notifications
+        for (BluetoothGattService gattService : mBluetoothLeService.getSupportedGattServices()) {
+            if (gattService.getUuid().equals(SampleGattAttributes.SERVICE_ACC)) {
+                BluetoothGattCharacteristic characteristicENABLE = gattService.getCharacteristic(SampleGattAttributes.ACC_ENABLE_UUID);
+                if (characteristicENABLE != null) {
+                    byte[] value= {(byte) 0x00};
+                    characteristicENABLE.setValue(value);
+                    mBluetoothLeService.writeCharacteristic(characteristicENABLE);
+                }
+                BluetoothGattCharacteristic characteristicTAP = gattService.getCharacteristic(SampleGattAttributes.ACC_TAP_DATA_UUID);
+                if (characteristicTAP != null) {
+                    Log.d("ntf", "at least we unsetup the notifications...");
+                    mBluetoothLeService.setCharacteristicNotification(characteristicTAP, false);
+                }
+            }
+        }
+    }
+    public void write01(View view) {
+        for (BluetoothGattService gattService : mBluetoothLeService.getSupportedGattServices()) {
+            if (gattService.getUuid().equals(SampleGattAttributes.ACC_ENABLE_UUID)) {
+                BluetoothGattCharacteristic characteristicENABLE = gattService.getCharacteristic(SampleGattAttributes.ACC_TAP_DATA_UUID);
+                if (characteristicENABLE != null) {
+                    byte[] value= {(byte) 0x04};
+                    characteristicENABLE.setValue(value);
+                    mBluetoothLeService.writeCharacteristic(characteristicENABLE);
+                }
+            }
+        }
+    }
+    public void write00(View view) {
+        for (BluetoothGattService gattService : mBluetoothLeService.getSupportedGattServices()) {
+            if (gattService.getUuid().equals(SampleGattAttributes.ACC_ENABLE_UUID)) {
+                BluetoothGattCharacteristic characteristicENABLE = gattService.getCharacteristic(SampleGattAttributes.ACC_TAP_DATA_UUID);
+                if (characteristicENABLE != null) {
+                    byte[] value= {(byte) 0x00};
+                    characteristicENABLE.setValue(value);
+                    mBluetoothLeService.writeCharacteristic(characteristicENABLE);
+                }
             }
         }
     }

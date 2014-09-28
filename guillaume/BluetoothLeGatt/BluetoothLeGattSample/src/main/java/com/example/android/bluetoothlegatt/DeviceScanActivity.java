@@ -28,6 +28,7 @@ import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -39,6 +40,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashSet;
 
 /**
  * Activity for scanning and displaying available Bluetooth LE devices.
@@ -52,6 +55,10 @@ public class DeviceScanActivity extends ListActivity {
     private static final int REQUEST_ENABLE_BT = 1;
     // Stops scanning after 10 seconds.
     private static final long SCAN_PERIOD = 10000;
+
+
+    private ArrayList<Route> routes = new ArrayList<Route>();
+    private HashSet<Integer> RSSIs = new HashSet<Integer>();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -78,6 +85,8 @@ public class DeviceScanActivity extends ListActivity {
             finish();
             return;
         }
+        routes.add(new Route("The Crows Nest", new Date(), 7, 1, "1C:BA:8C:2F:CF:F4", "84:DD:20:EA:F2:EF"));
+        routes.add(new Route("Sleeping Beauty", new Date(), 6, 2, "84:DD:20:EA:F2:D3", "84:DD:20:EA:F2:EE"));
     }
 
     @Override
@@ -148,11 +157,13 @@ public class DeviceScanActivity extends ListActivity {
 
     @Override
     protected void onListItemClick(ListView l, View v, int position, long id) {
+Log.d("test", "onitemclick");
         final BluetoothDevice device = mLeDeviceListAdapter.getDevice(position);
         if (device == null) return;
         final Intent intent = new Intent(this, TestDF1Activity.class);
         intent.putExtra(DeviceControlActivity.EXTRAS_DEVICE_NAME, device.getName());
         intent.putExtra(DeviceControlActivity.EXTRAS_DEVICE_ADDRESS, device.getAddress());
+Log.d("test", "stop scannning?");
         if (mScanning) {
             mBluetoothAdapter.stopLeScan(mLeScanCallback);
             mScanning = false;
@@ -226,25 +237,34 @@ public class DeviceScanActivity extends ListActivity {
             ViewHolder viewHolder;
             // General ListView optimization code.
             if (view == null) {
-                view = mInflator.inflate(R.layout.listitem_device, null);
+                view = mInflator.inflate(R.layout.listitem_route, null);
                 viewHolder = new ViewHolder();
+                viewHolder.routeName = (TextView) view.findViewById(R.id.route_name);
+                viewHolder.routeSetterGrade = (TextView) view.findViewById(R.id.route_setter_grade);
                 viewHolder.deviceAddress = (TextView) view.findViewById(R.id.device_address);
                 viewHolder.deviceName = (TextView) view.findViewById(R.id.device_name);
+                viewHolder.deviceRSSI = (TextView) view.findViewById(R.id.device_rssi);
                 view.setTag(viewHolder);
             } else {
                 viewHolder = (ViewHolder) view.getTag();
             }
 
             BluetoothDevice device = mLeDevices.get(i);
-            final String deviceName = device.getName();
-            if (deviceName != null && deviceName.length() > 0) {
-                viewHolder.deviceName.setText(deviceName);
-                if (deviceName.equals("df1") || deviceName.equals("DF1"))
-                    viewHolder.deviceName.setTextColor(Color.GREEN);
-            } else
-                viewHolder.deviceName.setText(R.string.unknown_device);
-            viewHolder.deviceAddress.setText(device.getAddress());
-
+            for (Route route : routes) {
+                if (device.getAddress().equals(route.start_addr)) {
+                    final String deviceName = device.getName();
+                    if (deviceName != null && deviceName.length() > 0) {
+                        viewHolder.deviceName.setText(deviceName);
+                        if (deviceName.equals("df1") || deviceName.equals("DF1"))
+                            viewHolder.deviceName.setTextColor(Color.GREEN);
+                    } else
+                        viewHolder.deviceName.setText(R.string.unknown_device);
+                    viewHolder.deviceAddress.setText(device.getAddress());
+                    viewHolder.routeSetterGrade.setText("V"+String.valueOf(route.setter_grade));
+                    viewHolder.routeName.setText(route.name);
+                    viewHolder.deviceRSSI.setText(String.valueOf(route.rssi));
+                }
+            }
             return view;
         }
     }
@@ -254,19 +274,31 @@ public class DeviceScanActivity extends ListActivity {
             new BluetoothAdapter.LeScanCallback() {
 
         @Override
-        public void onLeScan(final BluetoothDevice device, int rssi, byte[] scanRecord) {
+        public void onLeScan(final BluetoothDevice device, final int rssi, byte[] scanRecord) {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    mLeDeviceListAdapter.addDevice(device);
-                    mLeDeviceListAdapter.notifyDataSetChanged();
+                    for (Route route : routes) {
+                        if (device.getAddress().equals(route.start_addr)) {
+                            route.rssi = rssi;
+
+                            mLeDeviceListAdapter.addDevice(device);
+
+                            mLeDeviceListAdapter.notifyDataSetChanged();
+                        }
+                    }
+
                 }
             });
         }
     };
 
     static class ViewHolder {
+
+        TextView routeName;
+        TextView routeSetterGrade;
         TextView deviceName;
         TextView deviceAddress;
+        TextView deviceRSSI;
     }
 }
